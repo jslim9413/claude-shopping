@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>쇼핑 리스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        #itemInput {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        #itemInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #addBtn {
+            padding: 12px 25px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #addBtn:hover {
+            background: #5568d3;
+        }
+
+        #addBtn:active {
+            transform: scale(0.98);
+        }
+
+        #listContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .list-item:hover {
+            background: #e9ecef;
+        }
+
+        .list-item.completed {
+            opacity: 0.6;
+        }
+
+        .list-item.completed .item-text {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .item-text {
+            flex: 1;
+            color: #333;
+            font-size: 16px;
+            word-break: break-word;
+        }
+
+        .delete-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: #ee5a52;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 쇼핑 리스트</h1>
+
+        <div class="input-group">
+            <input
+                type="text"
+                id="itemInput"
+                placeholder="아이템을 입력하세요..."
+            >
+            <button id="addBtn">추가</button>
+        </div>
+
+        <div id="listContainer"></div>
+    </div>
+
+    <script>
+        const itemInput = document.getElementById('itemInput');
+        const addBtn = document.getElementById('addBtn');
+        const listContainer = document.getElementById('listContainer');
+
+        // 로컬스토리지에서 리스트 로드
+        function loadList() {
+            const saved = localStorage.getItem('shoppingList');
+            return saved ? JSON.parse(saved) : [];
+        }
+
+        // 로컬스토리지에 리스트 저장
+        function saveList(list) {
+            localStorage.setItem('shoppingList', JSON.stringify(list));
+        }
+
+        // UI 업데이트
+        function renderList() {
+            const list = loadList();
+            listContainer.innerHTML = '';
+
+            if (list.length === 0) {
+                listContainer.innerHTML = '<div class="empty-message">아직 아이템이 없습니다</div>';
+                return;
+            }
+
+            list.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `list-item ${item.completed ? 'completed' : ''}`;
+
+                div.innerHTML = `
+                    <input
+                        type="checkbox"
+                        ${item.completed ? 'checked' : ''}
+                        onchange="toggleItem(${index})"
+                    >
+                    <span class="item-text">${item.text}</span>
+                    <button class="delete-btn" onclick="deleteItem(${index})">삭제</button>
+                `;
+
+                listContainer.appendChild(div);
+            });
+        }
+
+        // 아이템 추가
+        function addItem() {
+            const text = itemInput.value.trim();
+            if (!text) return;
+
+            const list = loadList();
+            list.push({ text, completed: false });
+            saveList(list);
+            renderList();
+            itemInput.value = '';
+            itemInput.focus();
+        }
+
+        // 아이템 체크 토글
+        function toggleItem(index) {
+            const list = loadList();
+            list[index].completed = !list[index].completed;
+            saveList(list);
+            renderList();
+        }
+
+        // 아이템 삭제
+        function deleteItem(index) {
+            const list = loadList();
+            list.splice(index, 1);
+            saveList(list);
+            renderList();
+        }
+
+        // 이벤트 리스너
+        addBtn.addEventListener('click', addItem);
+        itemInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addItem();
+        });
+
+        // 초기 렌더링
+        renderList();
+    </script>
+</body>
+</html>
