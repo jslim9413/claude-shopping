@@ -161,22 +161,27 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        const SUPABASE_URL = 'https://thyyfqhikjfcrjlfqicz.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_pLZT8V1yKuey6rYYV7qxIg_vLBApm2l';
+        (function() {
+            if (window.__shoppingListInitialized) return;
+            window.__shoppingListInitialized = true;
 
-        let supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+            const SUPABASE_URL = 'https://thyyfqhikjfcrjlfqicz.supabase.co';
+            const SUPABASE_ANON_KEY = 'sb_publishable_pLZT8V1yKuey6rYYV7qxIg_vLBApm2l';
 
-        const itemInput = document.getElementById('itemInput');
-        const addBtn = document.getElementById('addBtn');
-        const listContainer = document.getElementById('listContainer');
+            const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-        if (!supabase) {
-            listContainer.innerHTML = '<div class="empty-message">Supabase 연결 실패</div>';
-        } else {
+            const itemInput = document.getElementById('itemInput');
+            const addBtn = document.getElementById('addBtn');
+            const listContainer = document.getElementById('listContainer');
+
+            if (!supabaseClient) {
+                listContainer.innerHTML = '<div class="empty-message">Supabase 연결 실패</div>';
+                return;
+            }
             // Supabase에서 리스트 로드
             async function loadList() {
                 try {
-                    const { data, error } = await supabase
+                    const { data, error } = await supabaseClient
                         .from('shopping_items')
                         .select('*')
                         .order('created_at', { ascending: false });
@@ -207,10 +212,10 @@
                         <input
                             type="checkbox"
                             ${item.completed ? 'checked' : ''}
-                            onchange="toggleItem('${item.id}')"
+                            onchange="window.toggleItem('${item.id}')"
                         >
                         <span class="item-text">${item.text}</span>
-                        <button class="delete-btn" onclick="deleteItem('${item.id}')">삭제</button>
+                        <button class="delete-btn" onclick="window.deleteItem('${item.id}')">삭제</button>
                     `;
 
                     listContainer.appendChild(div);
@@ -223,7 +228,7 @@
                 if (!text) return;
 
                 try {
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('shopping_items')
                         .insert([{ text, completed: false }]);
 
@@ -244,7 +249,7 @@
                     const list = await loadList();
                     const item = list.find(i => i.id === id);
 
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('shopping_items')
                         .update({ completed: !item.completed })
                         .eq('id', id);
@@ -260,7 +265,7 @@
             // 아이템 삭제
             async function deleteItem(id) {
                 try {
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('shopping_items')
                         .delete()
                         .eq('id', id);
@@ -286,7 +291,7 @@
             window.addItem = addItem;
             window.toggleItem = toggleItem;
             window.deleteItem = deleteItem;
-        }
+        })();
     </script>
 </body>
 </html>
