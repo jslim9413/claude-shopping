@@ -159,25 +159,36 @@
         <div id="listContainer"></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        const SUPABASE_URL = 'https://thyyfqhikjfcrjlfqicz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_pLZT8V1yKuey6rYYV7qxIg_vLBApm2l';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         const itemInput = document.getElementById('itemInput');
         const addBtn = document.getElementById('addBtn');
         const listContainer = document.getElementById('listContainer');
 
-        // 로컬스토리지에서 리스트 로드
-        function loadList() {
-            const saved = localStorage.getItem('shoppingList');
-            return saved ? JSON.parse(saved) : [];
-        }
+        // Supabase에서 리스트 로드
+        async function loadList() {
+            try {
+                const { data, error } = await supabase
+                    .from('shopping_items')
+                    .select('*')
+                    .order('created_at', { ascending: false });
 
-        // 로컬스토리지에 리스트 저장
-        function saveList(list) {
-            localStorage.setItem('shoppingList', JSON.stringify(list));
+                if (error) throw error;
+                return data || [];
+            } catch (error) {
+                console.error('데이터 로드 실패:', error);
+                return [];
+            }
         }
 
         // UI 업데이트
-        function renderList() {
-            const list = loadList();
+        async function renderList() {
+            const list = await loadList();
             listContainer.innerHTML = '';
 
             if (list.length === 0) {
@@ -185,7 +196,7 @@
                 return;
             }
 
-            list.forEach((item, index) => {
+            list.forEach((item) => {
                 const div = document.createElement('div');
                 div.className = `list-item ${item.completed ? 'completed' : ''}`;
 
@@ -193,10 +204,10 @@
                     <input
                         type="checkbox"
                         ${item.completed ? 'checked' : ''}
-                        onchange="toggleItem(${index})"
+                        onchange="toggleItem('${item.id}')"
                     >
                     <span class="item-text">${item.text}</span>
-                    <button class="delete-btn" onclick="deleteItem(${index})">삭제</button>
+                    <button class="delete-btn" onclick="deleteItem('${item.id}')">삭제</button>
                 `;
 
                 listContainer.appendChild(div);
@@ -204,32 +215,59 @@
         }
 
         // 아이템 추가
-        function addItem() {
+        async function addItem() {
             const text = itemInput.value.trim();
             if (!text) return;
 
-            const list = loadList();
-            list.push({ text, completed: false });
-            saveList(list);
-            renderList();
-            itemInput.value = '';
-            itemInput.focus();
+            try {
+                const { error } = await supabase
+                    .from('shopping_items')
+                    .insert([{ text, completed: false }]);
+
+                if (error) throw error;
+
+                renderList();
+                itemInput.value = '';
+                itemInput.focus();
+            } catch (error) {
+                console.error('아이템 추가 실패:', error);
+                alert('아이템 추가에 실패했습니다.');
+            }
         }
 
         // 아이템 체크 토글
-        function toggleItem(index) {
-            const list = loadList();
-            list[index].completed = !list[index].completed;
-            saveList(list);
-            renderList();
+        async function toggleItem(id) {
+            try {
+                const list = await loadList();
+                const item = list.find(i => i.id === id);
+
+                const { error } = await supabase
+                    .from('shopping_items')
+                    .update({ completed: !item.completed })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                renderList();
+            } catch (error) {
+                console.error('아이템 업데이트 실패:', error);
+            }
         }
 
         // 아이템 삭제
-        function deleteItem(index) {
-            const list = loadList();
-            list.splice(index, 1);
-            saveList(list);
-            renderList();
+        async function deleteItem(id) {
+            try {
+                const { error } = await supabase
+                    .from('shopping_items')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                renderList();
+            } catch (error) {
+                console.error('아이템 삭제 실패:', error);
+            }
         }
 
         // 이벤트 리스너

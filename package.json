@@ -1,0 +1,12 @@
+{
+  "name": "shopping-list-app",
+  "version": "1.0.0",
+  "description": "Shopping list app with Supabase",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx http-server"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.4"
+  }
+}
