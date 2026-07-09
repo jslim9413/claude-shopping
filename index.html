@@ -164,120 +164,129 @@
         const SUPABASE_URL = 'https://thyyfqhikjfcrjlfqicz.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_pLZT8V1yKuey6rYYV7qxIg_vLBApm2l';
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
         const itemInput = document.getElementById('itemInput');
         const addBtn = document.getElementById('addBtn');
         const listContainer = document.getElementById('listContainer');
 
-        // Supabase에서 리스트 로드
-        async function loadList() {
-            try {
-                const { data, error } = await supabase
-                    .from('shopping_items')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+        if (!supabase) {
+            listContainer.innerHTML = '<div class="empty-message">Supabase 연결 실패</div>';
+        } else {
+            // Supabase에서 리스트 로드
+            async function loadList() {
+                try {
+                    const { data, error } = await supabase
+                        .from('shopping_items')
+                        .select('*')
+                        .order('created_at', { ascending: false });
 
-                if (error) throw error;
-                return data || [];
-            } catch (error) {
-                console.error('데이터 로드 실패:', error);
-                return [];
-            }
-        }
-
-        // UI 업데이트
-        async function renderList() {
-            const list = await loadList();
-            listContainer.innerHTML = '';
-
-            if (list.length === 0) {
-                listContainer.innerHTML = '<div class="empty-message">아직 아이템이 없습니다</div>';
-                return;
+                    if (error) throw error;
+                    return data || [];
+                } catch (error) {
+                    console.error('데이터 로드 실패:', error);
+                    return [];
+                }
             }
 
-            list.forEach((item) => {
-                const div = document.createElement('div');
-                div.className = `list-item ${item.completed ? 'completed' : ''}`;
-
-                div.innerHTML = `
-                    <input
-                        type="checkbox"
-                        ${item.completed ? 'checked' : ''}
-                        onchange="toggleItem('${item.id}')"
-                    >
-                    <span class="item-text">${item.text}</span>
-                    <button class="delete-btn" onclick="deleteItem('${item.id}')">삭제</button>
-                `;
-
-                listContainer.appendChild(div);
-            });
-        }
-
-        // 아이템 추가
-        async function addItem() {
-            const text = itemInput.value.trim();
-            if (!text) return;
-
-            try {
-                const { error } = await supabase
-                    .from('shopping_items')
-                    .insert([{ text, completed: false }]);
-
-                if (error) throw error;
-
-                renderList();
-                itemInput.value = '';
-                itemInput.focus();
-            } catch (error) {
-                console.error('아이템 추가 실패:', error);
-                alert('아이템 추가에 실패했습니다.');
-            }
-        }
-
-        // 아이템 체크 토글
-        async function toggleItem(id) {
-            try {
+            // UI 업데이트
+            async function renderList() {
                 const list = await loadList();
-                const item = list.find(i => i.id === id);
+                listContainer.innerHTML = '';
 
-                const { error } = await supabase
-                    .from('shopping_items')
-                    .update({ completed: !item.completed })
-                    .eq('id', id);
+                if (list.length === 0) {
+                    listContainer.innerHTML = '<div class="empty-message">아직 아이템이 없습니다</div>';
+                    return;
+                }
 
-                if (error) throw error;
+                list.forEach((item) => {
+                    const div = document.createElement('div');
+                    div.className = `list-item ${item.completed ? 'completed' : ''}`;
 
-                renderList();
-            } catch (error) {
-                console.error('아이템 업데이트 실패:', error);
+                    div.innerHTML = `
+                        <input
+                            type="checkbox"
+                            ${item.completed ? 'checked' : ''}
+                            onchange="toggleItem('${item.id}')"
+                        >
+                        <span class="item-text">${item.text}</span>
+                        <button class="delete-btn" onclick="deleteItem('${item.id}')">삭제</button>
+                    `;
+
+                    listContainer.appendChild(div);
+                });
             }
-        }
 
-        // 아이템 삭제
-        async function deleteItem(id) {
-            try {
-                const { error } = await supabase
-                    .from('shopping_items')
-                    .delete()
-                    .eq('id', id);
+            // 아이템 추가
+            async function addItem() {
+                const text = itemInput.value.trim();
+                if (!text) return;
 
-                if (error) throw error;
+                try {
+                    const { error } = await supabase
+                        .from('shopping_items')
+                        .insert([{ text, completed: false }]);
 
-                renderList();
-            } catch (error) {
-                console.error('아이템 삭제 실패:', error);
+                    if (error) throw error;
+
+                    renderList();
+                    itemInput.value = '';
+                    itemInput.focus();
+                } catch (error) {
+                    console.error('아이템 추가 실패:', error);
+                    alert('아이템 추가에 실패했습니다.');
+                }
             }
+
+            // 아이템 체크 토글
+            async function toggleItem(id) {
+                try {
+                    const list = await loadList();
+                    const item = list.find(i => i.id === id);
+
+                    const { error } = await supabase
+                        .from('shopping_items')
+                        .update({ completed: !item.completed })
+                        .eq('id', id);
+
+                    if (error) throw error;
+
+                    renderList();
+                } catch (error) {
+                    console.error('아이템 업데이트 실패:', error);
+                }
+            }
+
+            // 아이템 삭제
+            async function deleteItem(id) {
+                try {
+                    const { error } = await supabase
+                        .from('shopping_items')
+                        .delete()
+                        .eq('id', id);
+
+                    if (error) throw error;
+
+                    renderList();
+                } catch (error) {
+                    console.error('아이템 삭제 실패:', error);
+                }
+            }
+
+            // 이벤트 리스너
+            addBtn.addEventListener('click', addItem);
+            itemInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addItem();
+            });
+
+            // 초기 렌더링
+            renderList();
+
+            // 전역으로 접근 가능하게
+            window.addItem = addItem;
+            window.toggleItem = toggleItem;
+            window.deleteItem = deleteItem;
         }
-
-        // 이벤트 리스너
-        addBtn.addEventListener('click', addItem);
-        itemInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addItem();
-        });
-
-        // 초기 렌더링
-        renderList();
     </script>
 </body>
 </html>
